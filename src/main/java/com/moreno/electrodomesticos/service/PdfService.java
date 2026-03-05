@@ -57,8 +57,7 @@ public class PdfService {
 
             for (int i = 0; i < productos.size(); i++) {
                 if (posIdx == 0) {
-                    // Nueva página (la primera se crea automáticamente)
-                    if (i > 0) pdfDoc.addNewPage();
+                    pdfDoc.addNewPage();
                     dibujarGuias(pdfDoc.getLastPage());
                 }
 
