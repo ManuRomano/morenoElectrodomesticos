@@ -80,8 +80,6 @@ public class PdfService {
                 A6_H - 2 * PADDING);
 
         try (Canvas canvas = new Canvas(pdfDoc.getLastPage(), rect)) {
-            canvas.setMargins(0, 0, 0, 0);
-
             // ── Header: Marca + Modelo ────────────────────────────────────────
             Paragraph header = new Paragraph()
                     .add(new Text(e.getMarca() + "\n").setBold().setFontSize(14))
