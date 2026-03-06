@@ -1,5 +1,7 @@
 package com.moreno.electrodomesticos.service;
 
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.geom.PageSize;
@@ -10,12 +12,15 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.moreno.electrodomesticos.model.Electrodomestico;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -74,7 +79,6 @@ public class PdfService {
             for (Electrodomestico e : productos) {
                 if (posIdx == 0) {
                     pdfDoc.addNewPage();
-                    dibujarGuias(pdfDoc.getLastPage());
                 }
                 float[] pos = POSITIONS[posIdx];
                 dibujarEtiqueta(pdfDoc.getLastPage(), e, pos[0], pos[1]);
@@ -100,9 +104,8 @@ public class PdfService {
         texto(page, cx, headerBottom + 10, cw, HEADER_H - 14,
               brand(e), 26, true, ColorConstants.WHITE, TextAlignment.CENTER);
 
-        // ── Pie: "Moreno" ──────────────────────────────────────────────
-        texto(page, cx, py + 10, cw, FOOTER_H - 10,
-              "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
+        // ── Pie: logo corporativo ─────────────────────────────────────
+        dibujarLogo(page, px, py, cw);
 
         // ── Contenido: cursores de Y descendentes ─────────────────────
         // curY = borde inferior del próximo elemento
@@ -178,15 +181,25 @@ public class PdfService {
         texto(page, x, y, w, h, letra, 11, true, ColorConstants.WHITE, TextAlignment.CENTER);
     }
 
-    // ─── Líneas de corte ──────────────────────────────────────────────────────
-    private void dibujarGuias(PdfPage page) {
-        new PdfCanvas(page)
-                .setLineDash(4, 4)
-                .setLineWidth(0.5f)
-                .moveTo(0,    A6_H).lineTo(A4_W, A6_H)
-                .moveTo(A6_W, 0   ).lineTo(A6_W, A4_H)
-                .stroke()
-                .release();
+    // ─── Logo corporativo en el pie ───────────────────────────────────────────
+    private void dibujarLogo(PdfPage page, float px, float py, float cw) {
+        try (InputStream is = getClass().getResourceAsStream("/images/tituloLogo.png")) {
+            if (is == null) throw new IllegalStateException("Logo no encontrado");
+            ImageData logoData = ImageDataFactory.create(is.readAllBytes());
+            Image logo = new Image(logoData);
+            logo.scaleToFit(cw - 8f, FOOTER_H - 10f);
+            logo.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            try (Canvas cv = new Canvas(page, new Rectangle(px, py, A6_W, FOOTER_H))) {
+                cv.add(new Paragraph()
+                        .add(logo)
+                        .setTextAlignment(TextAlignment.CENTER)
+                        .setMarginTop(5f));
+            }
+        } catch (Exception ex) {
+            // Fallback a texto si falla la carga del logo
+            texto(page, px + PAD, py + 10, cw, FOOTER_H - 10,
+                  "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
+        }
     }
 
     // ─── Helper: texto dentro de un rectángulo ────────────────────────────────
