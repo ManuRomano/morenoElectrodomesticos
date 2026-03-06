@@ -60,6 +60,22 @@ public class PdfService {
     // ── Color corporativo (azul pizarra) ─────────────────────────────────────
     private static final DeviceRgb COLOR_DARK = new DeviceRgb(0x2d, 0x4a, 0x6e);
 
+    // ── Logo cacheado ─────────────────────────────────────────────────────────
+    private ImageData logoData;
+    private boolean   logoLoaded = false;
+
+    private ImageData getLogoData() {
+        if (!logoLoaded) {
+            logoLoaded = true;
+            try (InputStream is = getClass().getResourceAsStream("/images/tituloLogo.png")) {
+                if (is != null) logoData = ImageDataFactory.create(is.readAllBytes());
+            } catch (Exception ex) {
+                logoData = null;
+            }
+        }
+        return logoData;
+    }
+
     /** Esquinas inferiores-izquierdas de las 4 posiciones (origen iText = abajo-izq). */
     private static final float[][] POSITIONS = {
         {0,     A6_H},   // 0: superior-izquierda
@@ -210,7 +226,9 @@ public class PdfService {
             Paragraph p = new Paragraph(text)
                     .setFontSize(fontSize)
                     .setTextAlignment(align)
-                    .setMargin(0);
+                    .setMargin(0)
+                    .setPadding(0)
+                    .setBorder(Border.NO_BORDER);
             if (bold)  p.setBold();
             if (color != null) p.setFontColor(color);
             cv.add(p);

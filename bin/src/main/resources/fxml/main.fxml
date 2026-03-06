@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.moreno.electrodomesticos.controller.MainController"
+            styleClass="root-pane">
+
+    <!-- ═══════════════════════ TOP BAR ═══════════════════════ -->
+    <top>
+        <VBox styleClass="top-bar">
+            <padding><Insets top="12" right="16" bottom="12" left="16"/></padding>
+            <Label text="Moreno Electrodomésticos" styleClass="app-title"/>
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <Label text="Filtrar por Tipo:"/>
+                <ComboBox fx:id="cbTipo" prefWidth="160"/>
+                <Label text="Filtrar por Marca:"/>
+                <ComboBox fx:id="cbMarca" prefWidth="160"/>
+                <Button fx:id="btnLimpiarFiltros" text="Limpiar Filtros"
+                        onAction="#onLimpiarFiltros" styleClass="btn-secondary"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblPaginaInfo" styleClass="info-label"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ═══════════════════════ CENTER TABLE ═══════════════════ -->
+    <center>
+        <TableView fx:id="tablaElectrodomesticos" VBox.vgrow="ALWAYS"
+                   styleClass="main-table">
+            <columns>
+                <TableColumn fx:id="colSeleccion" text="" prefWidth="40"/>
+                <TableColumn fx:id="colTipo"       text="Tipo"            prefWidth="120"/>
+                <TableColumn fx:id="colMarca"      text="Marca"           prefWidth="110"/>
+                <TableColumn fx:id="colModelo"     text="Modelo"          prefWidth="160"/>
+                <TableColumn fx:id="colPrecio"     text="Precio"          prefWidth="90"/>
+                <TableColumn fx:id="colClase"      text="Clase Energ."    prefWidth="90"/>
+                <TableColumn fx:id="colDimensiones" text="Dimensiones"    prefWidth="150"/>
+                <TableColumn fx:id="colSpecs"      text="Especificaciones" prefWidth="280"/>
+            </columns>
+            <placeholder>
+                <Label text="No se encontraron productos con los filtros seleccionados."/>
+            </placeholder>
+        </TableView>
+    </center>
+
+    <!-- ═══════════════════════ RIGHT FORM ══════════════════════ -->
+    <right>
+        <VBox styleClass="side-form" spacing="8" prefWidth="280">
+            <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+
+            <Label text="Ficha de Producto" styleClass="form-title"/>
+            <Separator/>
+
+            <Label text="Tipo *"/>
+            <TextField fx:id="txtTipo" promptText="Ej: Frigorífico"/>
+
+            <Label text="Marca *"/>
+            <TextField fx:id="txtMarca" promptText="Ej: Samsung"/>
+
+            <Label text="Modelo *"/>
+            <TextField fx:id="txtModelo" promptText="Ej: RB38T603DB1"/>
+
+            <Label text="Precio (€) *"/>
+            <TextField fx:id="txtPrecio" promptText="Ej: 899.99"/>
+
+            <Label text="Clase Energética"/>
+            <TextField fx:id="txtClase" promptText="Ej: A+++"/>
+
+            <Label text="Dimensiones"/>
+            <TextField fx:id="txtDimensiones" promptText="Ej: 595×595×2010mm"/>
+
+            <Label text="Especificaciones"/>
+            <TextArea fx:id="txtSpecs" prefRowCount="4" wrapText="true"
+                      promptText="Características principales..."/>
+
+            <Separator/>
+
+            <HBox spacing="8">
+                <Button fx:id="btnNuevo"   text="Nuevo"   onAction="#onNuevo"   styleClass="btn-secondary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button fx:id="btnGuardar" text="Guardar" onAction="#onGuardar" styleClass="btn-primary"   HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+            <Button fx:id="btnEliminar" text="Eliminar Seleccionados"
+                    onAction="#onEliminar" styleClass="btn-danger" maxWidth="Infinity"/>
+
+            <Separator/>
+
+            <Button fx:id="btnImprimirSeleccionados"
+                    text="Imprimir Etiquetas PDF"
+                    onAction="#onImprimirSeleccionados"
+                    styleClass="btn-print" maxWidth="Infinity"/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+            <Label fx:id="lblEstado" wrapText="true" styleClass="status-label"/>
+        </VBox>
+    </right>
+</BorderPane>
