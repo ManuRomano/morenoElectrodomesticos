@@ -13,6 +13,7 @@ import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.moreno.electrodomesticos.model.Electrodomestico;
@@ -132,9 +133,10 @@ public class PdfService {
             float lh    = origH * scale;
             float lx    = px + (A6_W - lw) / 2f;
             float ly    = py + (FOOTER_H - lh) / 2f;
-            PdfCanvas imgCanvas = new PdfCanvas(page);
-            imgCanvas.addImageWithTransformationMatrix(ld, lw, 0, 0, lh, lx, ly, false);
-            imgCanvas.release();
+            Image img = new Image(ld).setWidth(lw).setHeight(lh).setFixedPosition(lx, ly);
+            try (Canvas imgCv = new Canvas(page, new Rectangle(lx, ly, lw, lh))) {
+                imgCv.add(img);
+            }
         } else {
             texto(page, cx, py + 10, cw, FOOTER_H - 10,
                   "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
