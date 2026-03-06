@@ -132,9 +132,9 @@ public class PdfService {
             float lh    = origH * scale;
             float lx    = px + (A6_W - lw) / 2f;
             float ly    = py + (FOOTER_H - lh) / 2f;
-            new PdfCanvas(page)
-                    .addImageWithTransformationMatrix(ld, lw, 0, 0, lh, lx, ly, false)
-                    .release();
+            PdfCanvas imgCanvas = new PdfCanvas(page);
+            imgCanvas.addImageWithTransformationMatrix(ld, lw, 0, 0, lh, lx, ly, false);
+            imgCanvas.release();
         } else {
             texto(page, cx, py + 10, cw, FOOTER_H - 10,
                   "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
