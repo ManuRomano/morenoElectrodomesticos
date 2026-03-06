@@ -5,143 +5,206 @@ import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.element.Text;
 import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.UnitValue;
 import com.moreno.electrodomesticos.model.Electrodomestico;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Genera un PDF A4 con 4 etiquetas A6 (2 columnas × 2 filas) por página.
  *
- * Coordenadas A4 (595.28 × 841.89 pt):
- *   A6 = 297.64 × 420.94 pt
- *
- *   Etiqueta 0 (sup-izq): x=0,       y=420.94
- *   Etiqueta 1 (sup-der): x=297.64,  y=420.94
- *   Etiqueta 2 (inf-izq): x=0,       y=0
- *   Etiqueta 3 (inf-der): x=297.64,  y=0
+ * Layout de cada etiqueta:
+ *   ┌──────────────────────────┐
+ *   │  CABECERA (marca)        │  ← azul oscuro, texto blanco grande
+ *   ├──────────────────────────┤
+ *   │  Modelo                  │
+ *   │  Características         │
+ *   │    ➤ spec1               │
+ *   │    ➤ spec2               │
+ *   │  Clase Energética: [B►]  │  ← flecha coloreada
+ *   │  ╔══════════════════╗    │
+ *   │  ║  999,00 €        ║    │  ← pastilla azul oscuro
+ *   │  ╚══════════════════╝    │
+ *   │  FINANCIACIÓN DISPONIBLE │
+ *   ├──────────────────────────┤
+ *   │  Moreno                  │  ← pie azul oscuro, texto blanco
+ *   └──────────────────────────┘
  */
 @Service
 public class PdfService {
 
-    private static final float A4_W    = PageSize.A4.getWidth();   // 595.28
-    private static final float A4_H    = PageSize.A4.getHeight();  // 841.89
-    private static final float A6_W    = A4_W / 2;                 // 297.64
-    private static final float A6_H    = A4_H / 2;                 // 420.94
-    private static final float PADDING = 10f;
+    // ── Dimensiones ──────────────────────────────────────────────────────────
+    private static final float A4_W     = PageSize.A4.getWidth();   // 595.28 pt
+    private static final float A4_H     = PageSize.A4.getHeight();  // 841.89 pt
+    private static final float A6_W     = A4_W / 2;                 // 297.64 pt
+    private static final float A6_H     = A4_H / 2;                 // 420.94 pt
+    private static final float HEADER_H = 55f;
+    private static final float FOOTER_H = 45f;
+    private static final float PAD      = 12f;   // padding horizontal interior
 
-    /** Esquinas inferiores-izquierdas de las 4 posiciones (iText origin = bottom-left). */
+    // ── Color corporativo (azul pizarra) ─────────────────────────────────────
+    private static final DeviceRgb COLOR_DARK = new DeviceRgb(0x2d, 0x4a, 0x6e);
+
+    /** Esquinas inferiores-izquierdas de las 4 posiciones (origen iText = abajo-izq). */
     private static final float[][] POSITIONS = {
-        {0,      A6_H},   // 0: superior-izquierda
-        {A6_W,   A6_H},   // 1: superior-derecha
-        {0,      0},      // 2: inferior-izquierda
-        {A6_W,   0}       // 3: inferior-derecha
+        {0,     A6_H},   // 0: superior-izquierda
+        {A6_W,  A6_H},   // 1: superior-derecha
+        {0,     0   },   // 2: inferior-izquierda
+        {A6_W,  0   }    // 3: inferior-derecha
     };
 
+    // ── Punto de entrada ──────────────────────────────────────────────────────
     public void generarEtiquetasA6enA4(List<Electrodomestico> productos, String rutaSalida) throws IOException {
         try (PdfDocument pdfDoc = new PdfDocument(new PdfWriter(rutaSalida));
              Document document  = new Document(pdfDoc, PageSize.A4)) {
 
             document.setMargins(0, 0, 0, 0);
-
             int posIdx = 0;
 
-            for (int i = 0; i < productos.size(); i++) {
+            for (Electrodomestico e : productos) {
                 if (posIdx == 0) {
                     pdfDoc.addNewPage();
                     dibujarGuias(pdfDoc.getLastPage());
                 }
-
-                Electrodomestico e = productos.get(i);
                 float[] pos = POSITIONS[posIdx];
-                dibujarEtiqueta(pdfDoc, e, pos[0], pos[1]);
-
+                dibujarEtiqueta(pdfDoc.getLastPage(), e, pos[0], pos[1]);
                 posIdx = (posIdx + 1) % 4;
             }
         }
     }
 
-    // ─── Draw one A6 label ────────────────────────────────────────────────────
-    private void dibujarEtiqueta(PdfDocument pdfDoc, Electrodomestico e, float x, float y) {
-        Rectangle rect = new Rectangle(
-                x + PADDING,
-                y + PADDING,
-                A6_W - 2 * PADDING,
-                A6_H - 2 * PADDING);
+    // ─── Dibuja una etiqueta A6 ───────────────────────────────────────────────
+    private void dibujarEtiqueta(PdfPage page, Electrodomestico e, float px, float py) {
+        float cw = A6_W - 2 * PAD;   // ancho del área de contenido
+        float cx = px + PAD;          // X izquierda del contenido
 
-        try (Canvas canvas = new Canvas(pdfDoc.getLastPage(), rect)) {
-            // ── Header: Marca + Modelo ────────────────────────────────────────
-            Paragraph header = new Paragraph()
-                    .add(new Text(e.getMarca() + "\n").setBold().setFontSize(14))
-                    .add(new Text(e.getModelo()).setFontSize(11))
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setMarginBottom(6);
-            canvas.add(header);
+        // ── Bandas de color (cabecera y pie) ──────────────────────────
+        float headerBottom = py + A6_H - HEADER_H;
+        new PdfCanvas(page)
+                .setFillColor(COLOR_DARK)
+                .rectangle(px, headerBottom, A6_W, HEADER_H).fill()
+                .rectangle(px, py, A6_W, FOOTER_H).fill()
+                .release();
 
-            // ── Data table ────────────────────────────────────────────────────
-            Table table = new Table(UnitValue.createPercentArray(new float[]{40, 60}))
-                    .setWidth(UnitValue.createPercentValue(100));
+        // ── Cabecera: nombre de marca ──────────────────────────────────
+        texto(page, cx, headerBottom + 10, cw, HEADER_H - 14,
+              brand(e), 26, true, ColorConstants.WHITE, TextAlignment.CENTER);
 
-            addRow(table, "Precio",        formatPrecio(e));
-            addClaseEnergeticaRow(table, "Clase Energ.", nvl(e.getClasificacionEnergetica()));
-            addRow(table, "Dimensiones",   nvl(e.getDimensiones()));
-            addRow(table, "Tipo",          nvl(e.getTipo()));
+        // ── Pie: "Moreno" ──────────────────────────────────────────────
+        texto(page, cx, py + 10, cw, FOOTER_H - 10,
+              "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
 
-            canvas.add(table);
+        // ── Contenido: cursores de Y descendentes ─────────────────────
+        // curY = borde inferior del próximo elemento
+        float curY = headerBottom - PAD;
 
-            // ── Specs block ───────────────────────────────────────────────────
-            if (e.getEspecificacionesPrincipales() != null && !e.getEspecificacionesPrincipales().isBlank()) {
-                Paragraph specs = new Paragraph(e.getEspecificacionesPrincipales())
-                        .setFontSize(7.5f)
-                        .setItalic()
-                        .setMarginTop(6)
-                        .setTextAlignment(TextAlignment.LEFT);
-                canvas.add(specs);
-            }
+        // Modelo
+        curY -= 18f;
+        texto(page, cx, curY, cw, 18f, nvl(e.getModelo()), 13, true, null, TextAlignment.LEFT);
+
+        // "Características"
+        curY -= 22f;
+        texto(page, cx, curY, cw, 14f, "Características", 11, true, null, TextAlignment.LEFT);
+
+        // Especificaciones (viñetas)
+        String raw = e.getEspecificacionesPrincipales();
+        String[] specs = (raw != null && !raw.isBlank()) ? raw.split("[;,\n]+") : new String[0];
+        curY -= 4f;
+        for (int i = 0; i < Math.min(specs.length, 5); i++) {
+            String s = specs[i].trim();
+            if (s.isEmpty()) continue;
+            curY -= 14f;
+            texto(page, cx + 8, curY, cw - 8, 14f, "➤  " + s, 9.5f, false, null, TextAlignment.LEFT);
+        }
+
+        // Clase Energética
+        curY -= 14f;
+        float claseH  = 20f;
+        float labelW  = 98f;
+        texto(page, cx, curY - claseH, labelW, claseH, "Clase Energética:", 9, false, null, TextAlignment.LEFT);
+        dibujarFlecha(page, cx + labelW + 4, curY - claseH, nvl(e.getClasificacionEnergetica()), claseH);
+        curY -= claseH;
+
+        // ── Pastilla de precio (posición fija desde el pie) ────────────
+        float finH  = 11f;
+        float finY  = py + FOOTER_H + 6f;
+        float pillH = 70f;
+        float pillW = cw - 16f;
+        float pillX = px + PAD + 8f;
+        float pillY = finY + finH + 8f;
+
+        // "FINANCIACIÓN DISPONIBLE"
+        texto(page, cx, finY, cw, finH, "FINANCIACIÓN DISPONIBLE", 8, true, null, TextAlignment.LEFT);
+
+        // Fondo de la pastilla (rectángulo redondeado)
+        new PdfCanvas(page)
+                .setFillColor(COLOR_DARK)
+                .roundRectangle(pillX, pillY, pillW, pillH, 33)
+                .fill()
+                .release();
+
+        // Precio dentro de la pastilla
+        texto(page, pillX + 4, pillY + 4, pillW - 8, pillH - 8,
+              formatPrecio(e), 34, true, ColorConstants.WHITE, TextAlignment.CENTER);
+    }
+
+    // ─── Flecha de clase energética ───────────────────────────────────────────
+    private void dibujarFlecha(PdfPage page, float x, float y, String clase, float h) {
+        DeviceRgb color = getClaseColor(clase);
+        if (color == null) color = new DeviceRgb(0x75, 0x75, 0x75);
+        float w   = 55f;
+        float tip = 10f;
+        new PdfCanvas(page)
+                .setFillColor(color)
+                .moveTo(x,           y)
+                .lineTo(x + w,       y)
+                .lineTo(x + w + tip, y + h / 2f)
+                .lineTo(x + w,       y + h)
+                .lineTo(x,           y + h)
+                .closePath()
+                .fill()
+                .release();
+        String letra = clase.equals("—") ? "" : clase;
+        texto(page, x, y, w, h, letra, 11, true, ColorConstants.WHITE, TextAlignment.CENTER);
+    }
+
+    // ─── Líneas de corte ──────────────────────────────────────────────────────
+    private void dibujarGuias(PdfPage page) {
+        new PdfCanvas(page)
+                .setLineDash(4, 4)
+                .setLineWidth(0.5f)
+                .moveTo(0,    A6_H).lineTo(A4_W, A6_H)
+                .moveTo(A6_W, 0   ).lineTo(A6_W, A4_H)
+                .stroke()
+                .release();
+    }
+
+    // ─── Helper: texto dentro de un rectángulo ────────────────────────────────
+    private void texto(PdfPage page, float x, float y, float w, float h,
+                       String text, float fontSize, boolean bold,
+                       com.itextpdf.kernel.colors.Color color, TextAlignment align) {
+        try (Canvas cv = new Canvas(page, new Rectangle(x, y, w, h))) {
+            Paragraph p = new Paragraph(text)
+                    .setFontSize(fontSize)
+                    .setTextAlignment(align)
+                    .setMargin(0);
+            if (bold)  p.setBold();
+            if (color != null) p.setFontColor(color);
+            cv.add(p);
         }
     }
 
-    // ─── Draw cut guides (dashed lines) ──────────────────────────────────────
-    private void dibujarGuias(com.itextpdf.kernel.pdf.PdfPage page) {
-        PdfCanvas pdfCanvas = new PdfCanvas(page);
-        pdfCanvas.setLineDash(4, 4)
-                 .setLineWidth(0.5f)
-                 // Horizontal centre line
-                 .moveTo(0, A6_H).lineTo(A4_W, A6_H)
-                 // Vertical centre line
-                 .moveTo(A6_W, 0).lineTo(A6_W, A4_H)
-                 .stroke()
-                 .release();
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-    private void addClaseEnergeticaRow(Table table, String label, String clase) {
-        DeviceRgb bgColor = getClaseColor(clase);
-        Cell labelCell = new Cell().add(new Paragraph(label).setBold().setFontSize(8))
-                .setBorderRight(null).setPadding(2);
-        Paragraph valueText = new Paragraph("Clase " + clase).setFontSize(8).setBold();
-        if (bgColor != null) {
-            valueText.setFontColor(ColorConstants.WHITE);
-        }
-        Cell valueCell = new Cell().add(valueText).setBorderLeft(null).setPadding(2);
-        if (bgColor != null) {
-            valueCell.setBackgroundColor(bgColor);
-        }
-        table.addCell(labelCell);
-        table.addCell(valueCell);
-    }
-
+    // ─── Colores por clase energética ─────────────────────────────────────────
     private DeviceRgb getClaseColor(String clase) {
         return switch (clase) {
             case "A" -> new DeviceRgb(0x2e, 0x7d, 0x32);
@@ -155,17 +218,16 @@ public class PdfService {
         };
     }
 
-    private void addRow(Table table, String label, String value) {
-        Cell labelCell = new Cell().add(new Paragraph(label).setBold().setFontSize(8))
-                .setBorderRight(null).setPadding(2);
-        Cell valueCell = new Cell().add(new Paragraph(value).setFontSize(8))
-                .setBorderLeft(null).setPadding(2);
-        table.addCell(labelCell);
-        table.addCell(valueCell);
+    private String brand(Electrodomestico e) {
+        return e.getMarca() != null ? e.getMarca().toUpperCase() : "";
     }
 
     private String formatPrecio(Electrodomestico e) {
-        return e.getPrecio() != null ? e.getPrecio().toPlainString() + " €" : "—";
+        if (e.getPrecio() == null) return "—";
+        NumberFormat nf = NumberFormat.getNumberInstance(Locale.forLanguageTag("es-ES"));
+        nf.setMinimumFractionDigits(2);
+        nf.setMaximumFractionDigits(2);
+        return nf.format(e.getPrecio()) + " €";
     }
 
     private String nvl(String s) {
