@@ -1,5 +1,7 @@
 package com.moreno.electrodomesticos.service;
 
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -92,7 +94,7 @@ public class PdfService {
                     .setWidth(UnitValue.createPercentValue(100));
 
             addRow(table, "Precio",        formatPrecio(e));
-            addRow(table, "Clase Energ.",  nvl(e.getClasificacionEnergetica()));
+            addClaseEnergeticaRow(table, "Clase Energ.", nvl(e.getClasificacionEnergetica()));
             addRow(table, "Dimensiones",   nvl(e.getDimensiones()));
             addRow(table, "Tipo",          nvl(e.getTipo()));
 
@@ -124,6 +126,35 @@ public class PdfService {
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+    private void addClaseEnergeticaRow(Table table, String label, String clase) {
+        DeviceRgb bgColor = getClaseColor(clase);
+        Cell labelCell = new Cell().add(new Paragraph(label).setBold().setFontSize(8))
+                .setBorderRight(null).setPadding(2);
+        Paragraph valueText = new Paragraph("Clase " + clase).setFontSize(8).setBold();
+        if (bgColor != null) {
+            valueText.setFontColor(ColorConstants.WHITE);
+        }
+        Cell valueCell = new Cell().add(valueText).setBorderLeft(null).setPadding(2);
+        if (bgColor != null) {
+            valueCell.setBackgroundColor(bgColor);
+        }
+        table.addCell(labelCell);
+        table.addCell(valueCell);
+    }
+
+    private DeviceRgb getClaseColor(String clase) {
+        return switch (clase) {
+            case "A" -> new DeviceRgb(0x2e, 0x7d, 0x32);
+            case "B" -> new DeviceRgb(0x38, 0x8e, 0x3c);
+            case "C" -> new DeviceRgb(0x7c, 0xb3, 0x42);
+            case "D" -> new DeviceRgb(0xf9, 0xa8, 0x25);
+            case "E" -> new DeviceRgb(0xfb, 0x8c, 0x00);
+            case "F" -> new DeviceRgb(0xe6, 0x4a, 0x19);
+            case "G" -> new DeviceRgb(0xc6, 0x28, 0x28);
+            default  -> null;
+        };
+    }
+
     private void addRow(Table table, String label, String value) {
         Cell labelCell = new Cell().add(new Paragraph(label).setBold().setFontSize(8))
                 .setBorderRight(null).setPadding(2);

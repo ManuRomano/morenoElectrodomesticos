@@ -16,6 +16,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.stage.FileChooser;
+import javafx.util.Callback;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +28,19 @@ import java.util.*;
 
 @Component
 public class MainController implements Initializable {
+
+    // ── Clases energéticas ────────────────────────────────────────────────────
+    private static final List<String> CLASES_ENERGETICAS = List.of("A", "B", "C", "D", "E", "F", "G");
+
+    private static final Map<String, String> COLORES_CLASE = Map.of(
+            "A", "#2e7d32",
+            "B", "#388e3c",
+            "C", "#7cb342",
+            "D", "#f9a825",
+            "E", "#fb8c00",
+            "F", "#e64a19",
+            "G", "#c62828"
+    );
 
     // ── Electrodoméstico types & subtypes ─────────────────────────────────────
     private static final List<String> TIPOS_ELECTRODOMESTICO = List.of(
@@ -72,7 +86,7 @@ public class MainController implements Initializable {
     @FXML private TextField txtMarca;
     @FXML private TextField txtModelo;
     @FXML private TextField txtPrecio;
-    @FXML private TextField txtClase;
+    @FXML private ComboBox<String> cbClase;
     @FXML private TextField txtDimensiones;
     @FXML private TextArea  txtSpecs;
     @FXML private Button    btnGuardar;
@@ -126,6 +140,21 @@ public class MainController implements Initializable {
         colPrecio.setCellValueFactory(cd     -> new SimpleStringProperty(
                 cd.getValue().getPrecio() != null ? cd.getValue().getPrecio().toPlainString() + " €" : ""));
         colClase.setCellValueFactory(cd      -> new SimpleStringProperty(cd.getValue().getClasificacionEnergetica()));
+        colClase.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String clase, boolean empty) {
+                super.updateItem(clase, empty);
+                if (empty || clase == null || clase.isBlank()) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    String color = COLORES_CLASE.getOrDefault(clase, "#757575");
+                    setText("Clase " + clase);
+                    setStyle("-fx-background-color: " + color + "; -fx-text-fill: white; " +
+                             "-fx-font-weight: bold; -fx-alignment: center;");
+                }
+            }
+        });
         colDimensiones.setCellValueFactory(cd-> new SimpleStringProperty(cd.getValue().getDimensiones()));
         colSpecs.setCellValueFactory(cd      -> new SimpleStringProperty(cd.getValue().getEspecificacionesPrincipales()));
 
@@ -136,10 +165,33 @@ public class MainController implements Initializable {
         tablaElectrodomesticos.setItems(items);
     }
 
+    // ── Helper: colored cell for energy class ──────────────────────────────────
+    private ListCell<String> crearCeldaClase() {
+        return new ListCell<>() {
+            @Override
+            protected void updateItem(String clase, boolean empty) {
+                super.updateItem(clase, empty);
+                if (empty || clase == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    String color = COLORES_CLASE.getOrDefault(clase, "#757575");
+                    setText("Clase " + clase);
+                    setStyle("-fx-background-color: " + color + "; -fx-text-fill: white; " +
+                             "-fx-font-weight: bold; -fx-padding: 4 8;");
+                }
+            }
+        };
+    }
+
     // ── Form combo setup ──────────────────────────────────────────────────────
     private void configurarFormCombos() {
         cbElectrodomestico.getItems().setAll(TIPOS_ELECTRODOMESTICO);
         cbTipoElectrodomestico.setDisable(true);
+
+        cbClase.getItems().setAll(CLASES_ENERGETICAS);
+        cbClase.setCellFactory(lv -> crearCeldaClase());
+        cbClase.setButtonCell(crearCeldaClase());
 
         cbElectrodomestico.valueProperty().addListener((obs, old, val) -> {
             cbTipoElectrodomestico.getItems().clear();
@@ -237,7 +289,7 @@ public class MainController implements Initializable {
         txtMarca.setText(e.getMarca());
         txtModelo.setText(e.getModelo());
         txtPrecio.setText(e.getPrecio() != null ? e.getPrecio().toPlainString() : "");
-        txtClase.setText(e.getClasificacionEnergetica());
+        cbClase.setValue(e.getClasificacionEnergetica());
         txtDimensiones.setText(e.getDimensiones());
         txtSpecs.setText(e.getEspecificacionesPrincipales());
         btnGuardar.setText("Actualizar");
@@ -248,7 +300,7 @@ public class MainController implements Initializable {
         cbElectrodomestico.setValue(null);
         cbTipoElectrodomestico.setValue(null);
         txtMarca.clear(); txtModelo.clear();
-        txtPrecio.clear(); txtClase.clear(); txtDimensiones.clear(); txtSpecs.clear();
+        txtPrecio.clear(); cbClase.setValue(null); txtDimensiones.clear(); txtSpecs.clear();
         btnGuardar.setText("Guardar");
         tablaElectrodomesticos.getSelectionModel().clearSelection();
     }
@@ -271,7 +323,7 @@ public class MainController implements Initializable {
         e.setMarca(txtMarca.getText().trim());
         e.setModelo(txtModelo.getText().trim());
         e.setPrecio(new BigDecimal(txtPrecio.getText().trim().replace(",", ".")));
-        e.setClasificacionEnergetica(txtClase.getText().trim());
+        e.setClasificacionEnergetica(cbClase.getValue() != null ? cbClase.getValue() : "");
         e.setDimensiones(txtDimensiones.getText().trim());
         e.setEspecificacionesPrincipales(txtSpecs.getText().trim());
 

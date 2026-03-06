@@ -72,7 +72,7 @@
             <TextField fx:id="txtPrecio" promptText="Ej: 899.99"/>
 
             <Label text="Clase Energética"/>
-            <TextField fx:id="txtClase" promptText="Ej: A+++"/>
+            <ComboBox fx:id="cbClase" maxWidth="Infinity" promptText="Seleccionar clase..."/>
 
             <Label text="Dimensiones"/>
             <TextField fx:id="txtDimensiones" promptText="Ej: 595×595×2010mm"/>
