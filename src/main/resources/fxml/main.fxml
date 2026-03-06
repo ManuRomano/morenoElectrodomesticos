@@ -56,8 +56,11 @@
             <Label text="Ficha de Producto" styleClass="form-title"/>
             <Separator/>
 
-            <Label text="Tipo *"/>
-            <TextField fx:id="txtTipo" promptText="Ej: Frigorífico"/>
+            <Label text="Electrodoméstico *"/>
+            <ComboBox fx:id="cbElectrodomestico" maxWidth="Infinity" promptText="Seleccionar electrodoméstico..."/>
+
+            <Label text="Tipo Electrodoméstico"/>
+            <ComboBox fx:id="cbTipoElectrodomestico" maxWidth="Infinity" promptText="Seleccionar tipo..."/>
 
             <Label text="Marca *"/>
             <TextField fx:id="txtMarca" promptText="Ej: Samsung"/>

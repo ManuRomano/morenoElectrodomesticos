@@ -28,6 +28,28 @@ import java.util.*;
 @Component
 public class MainController implements Initializable {
 
+    // ── Electrodoméstico types & subtypes ─────────────────────────────────────
+    private static final List<String> TIPOS_ELECTRODOMESTICO = List.of(
+            "Frigorifico", "Lavadora", "Secadora", "Lavasecadora", "Lavavajillas",
+            "Horno", "Microondas", "Horno/Microondas", "Placa de coccion",
+            "Campana", "Aire Acondicionado", "Radiador"
+    );
+
+    private static final Map<String, List<String>> SUBTIPOS = Map.ofEntries(
+            Map.entry("Frigorifico",        List.of("Combi 60", "Combi 70", "Americano", "Frances", "Congelador Completo", "Frigorifico Completo", "Integrable")),
+            Map.entry("Lavadora",           List.of("Carga Frontal", "Carga Superior", "Integrable")),
+            Map.entry("Secadora",           List.of("Bomba de calor", "Condensacion", "Evacuacion")),
+            Map.entry("Lavasecadora",       List.of()),
+            Map.entry("Lavavajillas",       List.of("Estandar 60", "Estrechos 45", "Integrables", "Compactos")),
+            Map.entry("Horno",              List.of("Multifuncion", "Piroliticos", "Vapor", "Estrechos 45")),
+            Map.entry("Microondas",         List.of("Con grill", "Sin grill", "Encastrados/Integrados")),
+            Map.entry("Horno/Microondas",   List.of()),
+            Map.entry("Placa de coccion",   List.of("Induccion", "Vitroceramicas", "De gas", "Compactos", "Con extractor")),
+            Map.entry("Campana",            List.of("Decorativas", "Ocultas", "Telescopicas", "Grupo filtrante", "De techo", "De isla", "Integradas en encimera")),
+            Map.entry("Aire Acondicionado", List.of()),
+            Map.entry("Radiador",           List.of())
+    );
+
     // ── Filters ──────────────────────────────────────────────────────────────
     @FXML private ComboBox<String> cbTipo;
     @FXML private ComboBox<String> cbMarca;
@@ -45,7 +67,8 @@ public class MainController implements Initializable {
     @FXML private TableColumn<Electrodomestico, String>   colSpecs;
 
     // ── Form ──────────────────────────────────────────────────────────────────
-    @FXML private TextField txtTipo;
+    @FXML private ComboBox<String> cbElectrodomestico;
+    @FXML private ComboBox<String> cbTipoElectrodomestico;
     @FXML private TextField txtMarca;
     @FXML private TextField txtModelo;
     @FXML private TextField txtPrecio;
@@ -81,6 +104,7 @@ public class MainController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         configurarColumnas();
+        configurarFormCombos();
         configurarFiltros();
         configurarScrollInfinito();
         cargarPagina(0, true);
@@ -110,6 +134,28 @@ public class MainController implements Initializable {
                 (obs, old, selected) -> { if (selected != null) cargarEnFormulario(selected); });
 
         tablaElectrodomesticos.setItems(items);
+    }
+
+    // ── Form combo setup ──────────────────────────────────────────────────────
+    private void configurarFormCombos() {
+        cbElectrodomestico.getItems().setAll(TIPOS_ELECTRODOMESTICO);
+        cbTipoElectrodomestico.setDisable(true);
+
+        cbElectrodomestico.valueProperty().addListener((obs, old, val) -> {
+            cbTipoElectrodomestico.getItems().clear();
+            if (val != null) {
+                List<String> subtipos = SUBTIPOS.getOrDefault(val, List.of());
+                if (subtipos.isEmpty()) {
+                    cbTipoElectrodomestico.setDisable(true);
+                    cbTipoElectrodomestico.setValue(null);
+                } else {
+                    cbTipoElectrodomestico.getItems().setAll(subtipos);
+                    cbTipoElectrodomestico.setDisable(false);
+                }
+            } else {
+                cbTipoElectrodomestico.setDisable(true);
+            }
+        });
     }
 
     // ── Filter setup ──────────────────────────────────────────────────────────
@@ -186,7 +232,8 @@ public class MainController implements Initializable {
     // ═════════════════════════════════════════════════════════════════════════
     private void cargarEnFormulario(Electrodomestico e) {
         editando = e;
-        txtTipo.setText(e.getTipo());
+        cbElectrodomestico.setValue(e.getTipo());
+        cbTipoElectrodomestico.setValue(e.getTipoElectrodomestico());
         txtMarca.setText(e.getMarca());
         txtModelo.setText(e.getModelo());
         txtPrecio.setText(e.getPrecio() != null ? e.getPrecio().toPlainString() : "");
@@ -198,7 +245,9 @@ public class MainController implements Initializable {
 
     private void limpiarFormulario() {
         editando = null;
-        txtTipo.clear(); txtMarca.clear(); txtModelo.clear();
+        cbElectrodomestico.setValue(null);
+        cbTipoElectrodomestico.setValue(null);
+        txtMarca.clear(); txtModelo.clear();
         txtPrecio.clear(); txtClase.clear(); txtDimensiones.clear(); txtSpecs.clear();
         btnGuardar.setText("Guardar");
         tablaElectrodomesticos.getSelectionModel().clearSelection();
@@ -217,7 +266,8 @@ public class MainController implements Initializable {
         if (!validarFormulario()) return;
 
         Electrodomestico e = editando != null ? editando : new Electrodomestico();
-        e.setTipo(txtTipo.getText().trim());
+        e.setTipo(cbElectrodomestico.getValue());
+        e.setTipoElectrodomestico(cbTipoElectrodomestico.getValue());
         e.setMarca(txtMarca.getText().trim());
         e.setModelo(txtModelo.getText().trim());
         e.setPrecio(new BigDecimal(txtPrecio.getText().trim().replace(",", ".")));
@@ -295,8 +345,8 @@ public class MainController implements Initializable {
     }
 
     private boolean validarFormulario() {
-        if (txtTipo.getText().isBlank() || txtMarca.getText().isBlank() || txtModelo.getText().isBlank()) {
-            AlertHelper.warn("Campos requeridos", "Tipo, Marca y Modelo son obligatorios.");
+        if (cbElectrodomestico.getValue() == null || txtMarca.getText().isBlank() || txtModelo.getText().isBlank()) {
+            AlertHelper.warn("Campos requeridos", "Electrodoméstico, Marca y Modelo son obligatorios.");
             return false;
         }
         try {
