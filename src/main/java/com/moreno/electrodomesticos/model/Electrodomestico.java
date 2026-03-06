@@ -23,6 +23,9 @@ public class Electrodomestico {
     @Column(nullable = false)
     private String tipo;
 
+    @Column(name = "tipo_electrodomestico")
+    private String tipoElectrodomestico;
+
     @Column(nullable = false)
     private String marca;
 
