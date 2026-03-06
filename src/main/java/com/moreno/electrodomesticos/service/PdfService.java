@@ -1,5 +1,7 @@
 package com.moreno.electrodomesticos.service;
 
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.geom.PageSize;
@@ -10,12 +12,14 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.moreno.electrodomesticos.model.Electrodomestico;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +58,22 @@ public class PdfService {
 
     // ── Color corporativo (azul pizarra) ─────────────────────────────────────
     private static final DeviceRgb COLOR_DARK = new DeviceRgb(0x2d, 0x4a, 0x6e);
+
+    // ── Logo cacheado ─────────────────────────────────────────────────────────
+    private ImageData logoData;
+    private boolean   logoLoaded = false;
+
+    private ImageData getLogoData() {
+        if (!logoLoaded) {
+            logoLoaded = true;
+            try (InputStream is = getClass().getResourceAsStream("/images/tituloLogo.png")) {
+                if (is != null) logoData = ImageDataFactory.create(is.readAllBytes());
+            } catch (Exception ex) {
+                logoData = null;
+            }
+        }
+        return logoData;
+    }
 
     /** Esquinas inferiores-izquierdas de las 4 posiciones (origen iText = abajo-izq). */
     private static final float[][] POSITIONS = {
@@ -100,9 +120,25 @@ public class PdfService {
         texto(page, cx, headerBottom + 10, cw, HEADER_H - 14,
               brand(e), 26, true, ColorConstants.WHITE, TextAlignment.CENTER);
 
-        // ── Pie: "Moreno" ──────────────────────────────────────────────
-        texto(page, cx, py + 10, cw, FOOTER_H - 10,
-              "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
+        // ── Pie: logo ─────────────────────────────────────────────────
+        ImageData ld = getLogoData();
+        if (ld != null) {
+            float origW = ld.getWidth();
+            float origH = ld.getHeight();
+            float maxW  = cw * 0.70f;
+            float maxH  = FOOTER_H - 10f;
+            float scale = Math.min(maxW / origW, maxH / origH);
+            float lw    = origW * scale;
+            float lh    = origH * scale;
+            float lx    = px + (A6_W - lw) / 2f;
+            float ly    = py + (FOOTER_H - lh) / 2f;
+            new PdfCanvas(page)
+                    .addImageWithTransformationMatrix(ld, lw, 0, 0, lh, lx, ly, false)
+                    .release();
+        } else {
+            texto(page, cx, py + 10, cw, FOOTER_H - 10,
+                  "Moreno", 20, false, ColorConstants.WHITE, TextAlignment.CENTER);
+        }
 
         // ── Contenido: cursores de Y descendentes ─────────────────────
         // curY = borde inferior del próximo elemento
@@ -197,7 +233,9 @@ public class PdfService {
             Paragraph p = new Paragraph(text)
                     .setFontSize(fontSize)
                     .setTextAlignment(align)
-                    .setMargin(0);
+                    .setMargin(0)
+                    .setPadding(0)
+                    .setBorder(Border.NO_BORDER);
             if (bold)  p.setBold();
             if (color != null) p.setFontColor(color);
             cv.add(p);
