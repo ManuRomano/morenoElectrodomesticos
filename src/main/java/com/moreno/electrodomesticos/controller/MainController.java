@@ -327,11 +327,12 @@ public class MainController implements Initializable {
         e.setDimensiones(txtDimensiones.getText().trim());
         e.setEspecificacionesPrincipales(txtSpecs.getText().trim());
 
+        boolean actualizando = editando != null;
         service.save(e);
         actualizarFiltrosDespuesDeGuardar();
         recargarDesdeInicio();
         limpiarFormulario();
-        mostrarEstado(editando == null ? "Producto guardado correctamente." : "Producto actualizado.", false);
+        mostrarEstado(actualizando ? "Producto actualizado." : "Producto guardado correctamente.", false);
     }
 
     @FXML
