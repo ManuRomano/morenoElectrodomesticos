@@ -111,11 +111,10 @@ public class PdfService {
 
         // ── Bandas de color (cabecera y pie) ──────────────────────────
         float headerBottom = py + A6_H - HEADER_H;
-        try (PdfCanvas canvas = new PdfCanvas(page)) {
-            canvas.setFillColor(COLOR_DARK)
-                    .rectangle(px, headerBottom, A6_W, HEADER_H).fill()
-                    .rectangle(px, py, A6_W, FOOTER_H).fill();
-        }
+        PdfCanvas canvas = new PdfCanvas(page);
+        canvas.setFillColor(COLOR_DARK)
+                .rectangle(px, headerBottom, A6_W, HEADER_H).fill()
+                .rectangle(px, py, A6_W, FOOTER_H).fill();
 
         // ── Cabecera: nombre de marca ──────────────────────────────────
         texto(page, cx, headerBottom + 10, cw, HEADER_H - 14,
@@ -167,11 +166,10 @@ public class PdfService {
         texto(page, cx, finY, cw, finH, "FINANCIACIÓN DISPONIBLE", 8, true, null, TextAlignment.LEFT);
 
         // Fondo de la pastilla (rectángulo redondeado)
-        try (PdfCanvas canvas = new PdfCanvas(page)) {
-            canvas.setFillColor(COLOR_DARK)
-                    .roundRectangle(pillX, pillY, pillW, pillH, 33)
-                    .fill();
-        }
+        PdfCanvas canvas2 = new PdfCanvas(page);
+        canvas2.setFillColor(COLOR_DARK)
+                .roundRectangle(pillX, pillY, pillW, pillH, 33)
+                .fill();
 
         // Precio dentro de la pastilla
         texto(page, pillX + 4, pillY + 4, pillW - 8, pillH - 8,
@@ -184,16 +182,15 @@ public class PdfService {
         if (color == null) color = new DeviceRgb(0x75, 0x75, 0x75);
         float w   = 55f;
         float tip = 10f;
-        try (PdfCanvas canvas = new PdfCanvas(page)) {
-            canvas.setFillColor(color)
-                    .moveTo(x,           y)
-                    .lineTo(x + w,       y)
-                    .lineTo(x + w + tip, y + h / 2f)
-                    .lineTo(x + w,       y + h)
-                    .lineTo(x,           y + h)
-                    .closePath()
-                    .fill();
-        }
+        PdfCanvas arrowCanvas = new PdfCanvas(page);
+        arrowCanvas.setFillColor(color)
+                .moveTo(x,           y)
+                .lineTo(x + w,       y)
+                .lineTo(x + w + tip, y + h / 2f)
+                .lineTo(x + w,       y + h)
+                .lineTo(x,           y + h)
+                .closePath()
+                .fill();
         String letra = clase.equals("—") ? "" : clase;
         texto(page, x, y, w, h, letra, 11, true, ColorConstants.WHITE, TextAlignment.CENTER);
     }
