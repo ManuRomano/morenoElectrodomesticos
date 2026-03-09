@@ -120,16 +120,71 @@
 
     <!-- ═══════════════════════════════════════════════════════════════════
          Perfil: windows-installer
-         Genera un .exe Windows usando Launch4j (envuelve el fat-JAR).
-         Uso:     mvn clean package -P windows-installer
-         Resultado: target/MorenoElectrodomesticos.exe  +  target/electrodomesticos-1.0.0.jar
-         Despliegue: copia ambos archivos juntos en la misma carpeta.
+         Genera una carpeta autónoma para Windows con JRE embebida.
+         Usa jlink para el JRE mínimo y Launch4j para el .exe.
+         El cliente NO necesita tener Java instalado.
+
+         Uso:      mvn verify -P windows-installer   (ejecutar en Windows)
+         Resultado: target/app/
+                      ├── MorenoElectrodomesticos.exe   ← doble clic para abrir
+                      ├── electrodomesticos-1.0.0.jar   ← no borrar
+                      └── jre/                          ← Java 21 embebido
+         Entrega:  comprimir target/app/ en un .zip y enviar al cliente.
          ═══════════════════════════════════════════════════════════════════ -->
     <profiles>
         <profile>
             <id>windows-installer</id>
             <build>
                 <plugins>
+
+                    <!-- ── Paso 1 (pre-integration-test): JRE mínimo con jlink ──────── -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>jlink-jre</id>
+                                <phase>pre-integration-test</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>jlink</executable>
+                                    <arguments>
+                                        <argument>--add-modules</argument>
+                                        <!-- Módulos estándar suficientes para Spring Boot + H2 + JavaFX (classpath) + iText -->
+                                        <argument>java.base,java.compiler,java.desktop,java.instrument,java.logging,java.management,java.management.rmi,java.naming,java.net.http,java.prefs,java.rmi,java.scripting,java.security.jgss,java.security.sasl,java.sql,java.sql.rowset,java.transaction.xa,java.xml,java.xml.crypto,jdk.management,jdk.unsupported,jdk.zipfs</argument>
+                                        <argument>--output</argument>
+                                        <argument>${project.build.directory}/app/jre</argument>
+                                        <argument>--no-header-files</argument>
+                                        <argument>--no-man-pages</argument>
+                                        <argument>--strip-debug</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- ── Paso 2 (pre-integration-test): copiar el fat-JAR a target/app ── -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>copiar-jar-a-app</id>
+                                <phase>pre-integration-test</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                              todir="${project.build.directory}/app"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- ── Paso 3 (integration-test): Launch4j genera el .exe con JRE embebida ── -->
                     <plugin>
                         <groupId>com.akathist.maven.plugins.launch4j</groupId>
                         <artifactId>launch4j-maven-plugin</artifactId>
@@ -137,20 +192,19 @@
                         <executions>
                             <execution>
                                 <id>crear-exe-windows</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>launch4j</goal>
-                                </goals>
+                                <phase>integration-test</phase>
+                                <goals><goal>launch4j</goal></goals>
                                 <configuration>
-                                    <!-- gui = sin ventana de consola -->
+                                    <!-- gui = sin ventana de consola negra -->
                                     <headerType>gui</headerType>
-                                    <!-- El .exe lanza: java -jar electrodomesticos-1.0.0.jar -->
-                                    <jar>${project.build.directory}/${project.build.finalName}.jar</jar>
-                                    <outfile>${project.build.directory}/MorenoElectrodomesticos.exe</outfile>
+                                    <!-- Referencia al JAR ya copiado en target/app/ -->
+                                    <jar>${project.build.directory}/app/${project.build.finalName}.jar</jar>
+                                    <outfile>${project.build.directory}/app/MorenoElectrodomesticos.exe</outfile>
                                     <errTitle>Moreno Electrodomésticos</errTitle>
                                     <jre>
+                                        <!-- Usa ./jre/ junto al .exe (generado por jlink arriba) -->
+                                        <path>./jre</path>
                                         <minVersion>21</minVersion>
-                                        <jdkPreference>preferJre</jdkPreference>
                                         <runtimeBits>64</runtimeBits>
                                     </jre>
                                     <versionInfo>
@@ -168,6 +222,7 @@
                             </execution>
                         </executions>
                     </plugin>
+
                 </plugins>
             </build>
         </profile>
