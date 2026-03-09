@@ -192,9 +192,6 @@
                                         <argument>--main-jar</argument>
                                         <argument>${project.build.finalName}.jar</argument>
 
-                                        <argument>--main-class</argument>
-                                        <argument>com.moreno.electrodomesticos.MainLauncher</argument>
-
                                         <!-- Carpeta de salida -->
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/installer</argument>
@@ -209,9 +206,9 @@
                                         <argument>--java-options</argument>
                                         <argument>-Dfile.encoding=UTF-8</argument>
 
-                                        <!-- Base de datos junto al ejecutable ($ROOTDIR = raíz de la imagen) -->
+                                        <!-- Base de datos junto al ejecutable ($APPDIR = raíz de la imagen de jpackage) -->
                                         <argument>--java-options</argument>
-                                        <argument>-Dspring.datasource.url=jdbc:h2:file:$ROOTDIR/db/inventario;AUTO_SERVER=TRUE</argument>
+                                        <argument>-Dspring.datasource.url=jdbc:h2:file:$APPDIR/db/inventario;AUTO_SERVER=TRUE</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
