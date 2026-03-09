@@ -199,9 +199,11 @@
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/installer</argument>
 
-                                        <!-- Icono (opcional): añade src/main/jpackage/windows/icono.ico -->
-                                        <!-- <argument>--icon</argument>                                  -->
-                                        <!-- <argument>src/main/jpackage/windows/icono.ico</argument>    -->
+                                        <!-- Icono opcional: añade src/main/jpackage/windows/icono.ico
+                                             y descomenta los dos argumentos siguientes:
+                                        <argument>- -icon</argument>
+                                        <argument>src/main/jpackage/windows/icono.ico</argument>
+                                        -->
 
                                         <!-- Opciones de la JVM en tiempo de ejecución -->
                                         <argument>--java-options</argument>
