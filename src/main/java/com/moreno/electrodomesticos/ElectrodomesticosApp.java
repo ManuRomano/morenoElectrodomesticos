@@ -27,7 +27,7 @@ public class ElectrodomesticosApp extends Application {
         SpringFXMLLoader loader = springContext.getBean(SpringFXMLLoader.class);
         Parent root = loader.load("/fxml/main.fxml");
 
-        Scene scene = new Scene(root, 1200, 720);
+        Scene scene = new Scene(root, 1200, 780);
         scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
 
         primaryStage.setTitle("Moreno Electrodomésticos — Gestión de Inventario");
